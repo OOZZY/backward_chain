@@ -77,59 +77,24 @@ def print_knowledge_base(knowledge_base):
     for rule in knowledge_base:
         print(rule_to_string(rule))
 
-def is_resolvable(goals, rule):
-    """Returns whether the given clauses/rules are resolvable.
-
-    Specifically, returns whether head(rule) is in goals.
-    """
-    return head(rule) in goals
-
-def resolve(goals, rule):
-    """Returns the resolution of the given clauses/rules.
-
-    Specifically, replaces occurence of head(rule) in goals with body(rule).
-    """
-    print("Substituting '{}' in goals with '{}'"
-            .format(head(rule), body_to_string(body(rule))))
-    atom_index = goals.index(head(rule))
-    return goals[0:atom_index] + body(rule) + goals[atom_index+1:]
-
-def derive_query(query, knowledge_base):
+def solve(goals, knowledge_base, recursion_depth):
     """Derives given query from given knowledge_base. Prints the derivation.
     """
-    goals = query
-    print(goals_to_string(goals))
+    print("{}{}".format("  " * (recursion_depth - 1), goals_to_string(goals)))
+    if not goals:
+        return True
 
-    # following variable is used to keep track of the number of times we have
-    # chosen a rule from the knowledge base that couldn't be resolved with the
-    # goals. this variable will get reset to 0 whenever we do find a rule from
-    # the knowledge base that could be resolved with the goals. this variable
-    # is used to terminate the following loops if further derivation is not
-    # possible
-    unresolvable_rule_count = 0
+    a = goals[0]
+    goals = goals[1:]
 
-    # iterates through the rules in the knowledge base over and over again.
-    # the iteration stops when a terminating condition is satisfied
-    done = False
-    while not done:
-        for rule in knowledge_base:
-            if is_resolvable(goals, rule):
-                unresolvable_rule_count = 0
-                goals = resolve(goals, rule)
-                print(goals_to_string(goals))
-                if not goals:
-                    print()
-                    print("The knowledge base entails the query.")
-                    done = True
-                    break
-            else:
-                unresolvable_rule_count += 1
-                if unresolvable_rule_count == len(knowledge_base):
-                    print("Further derivation is not possible.")
-                    print()
-                    print("The knowledge base does not entail the query.")
-                    done = True
-                    break
+    for rule in knowledge_base:
+        if head(rule) == a:
+            print("{}Substituting '{}' in goals with '{}'"
+                    .format("  " * recursion_depth, a, body_to_string(body(rule))))
+            if solve(body(rule) + goals, knowledge_base, recursion_depth + 1):
+                return True
+
+    return False
 
 if len(sys.argv) < 3:
     print("usage:")
@@ -151,4 +116,11 @@ else:
     print(query_to_string(query))
     print()
     print("Derivation:")
-    derive_query(query, knowledge_base)
+    entailed = solve(query, knowledge_base, 1)
+
+    if entailed:
+        print()
+        print("The knowledge base entails the query.")
+    else:
+        print()
+        print("The knowledge base does not entail the query.")
